@@ -7,7 +7,6 @@
   <tr><th>5. 前缀/中缀/后缀运算符</th></tr>
   <tr><th>6. 常量定义</th></tr>
   <tr><th>7. 复数运算</th></tr>
-  <tr><th>8. LaTeX解析(还不稳定)</th></tr>
 </table>
 
 <h2 id="功能特性">功能特性</h2>
@@ -17,7 +16,6 @@
       <li>支持自定义类型：运行自己编写规则</li>
       <li>支持实数类型：float/double/long double</li>
       <li>复数运算支持：std::complex&lt;T&gt;</li>
-      <li>LaTeX数学表达式解析为计算表达式</li>
       <li>动态符号管理：前缀树存储变量、函数和运算符</li>
       <li>运算符优先级自动处理</li>
     </ul>
@@ -51,23 +49,12 @@ int main()
   auto result = c_calc.evaluate(expr); // 结果：(-1-2i) + (3-4i) = 2-6i
 }</code></pre>
 
-<h3>LaTeX解析示例</h3>
-<pre><code class="language-cpp">#include "eval_latex.hpp"
-int main() 
-{
-  eval::latex_parser&lt;char&gt; parser;
-  parser.register_variable("x");
-  std::string expr = parser.parse("\frac{\sqrt[3]{x}}{2^{n}}");
-  // 输出：root(3,x)/(2^(n))
-}</code></pre>
-
 <h2 id="核心类说明">核心类说明</h2>
 <table class="api-table">
   <tr><th>类名</th><th>功能</th><th>关键成员</th></tr>
   <tr><td>sstree&lt;C,T&gt;</td><td>前缀树符号表</td><td><code>insert()</code>, <code>search()</code>, <code>erase()</code></td></tr>
   <tr><td>evaluator&lt;C,T&gt;</td><td>表达式解析器</td><td><code>parse()</code>, <code>evaluate()</code></td></tr>
   <tr><td>epre&lt;T&gt;</td><td>表达式中间表示</td><td><code>funcs</code>, <code>vars</code>, <code>index</code></td></tr>
-  <tr><td>latex_parser&lt;C&gt;</td><td>LaTeX转换器</td><td><code>parse()</code>, <code>register_variable()</code></td></tr>
 </table>
 
 <h2 id="表达式语法">表达式语法</h2>
@@ -76,7 +63,6 @@ int main()
   <tr><td>基本运算</td><td><code>3 + 5 * (2 - x)</code></td><td>支持嵌套括号</td></tr>
   <tr><td>函数调用</td><td><code>sin(pi/2)</code></td><td>必须使用括号</td></tr>
   <tr><td>复数运算</td><td><code>(2+3i) * 4i</code></td><td>虚数单位用<code>i</code>后缀</td></tr>
-  <tr><td>LaTeX转换</td><td><code>\sqrt{\frac{x}{2}}</code> → <code>sqrt(x/2)</code></td><td>支持分式、根号等</td></tr>
 </table>
 
 <h2 id="自定义扩展">自定义扩展</h2>
