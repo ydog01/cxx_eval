@@ -132,7 +132,7 @@ for (int i=0; i&lt;1000; i++)
 <h2 id="注意事项">关键注意事项</h2>
 <div class="warning">
   <ul>
-    <li>LaTeX解析时，多字母变量（如<code>theta</code>）需提前注册</li>
+    <li>本项目仅需要标准的cxx_11标准并包含头即可使用</li>
     <li>函数参数分隔符必须使用英文逗号</li>
   </ul>
 </div>
