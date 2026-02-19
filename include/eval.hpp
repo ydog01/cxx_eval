@@ -1,5 +1,5 @@
-#ifndef EVAL_HPP
-#define EVAL_HPP
+#ifndef CXX_EVAL
+#define CXX_EVAL
 
 #include "table.hpp"
 #include <functional>
@@ -119,7 +119,11 @@ namespace cxx_eval
             }
         };
 
-        using FuncType = std::function<std::shared_ptr<RootVar>(std::shared_ptr<RootVar> *)>;
+        using FuncType = std::function<std::shared_ptr<RootVar>(std::shared_ptr<RootVar> *
+#ifdef CXX_EVAL_ID
+                                                                ,std::size_t
+#endif
+                                                                )>;
 
         struct Operation
         {
@@ -179,7 +183,11 @@ namespace cxx_eval
                             throw std::runtime_error("Stack underflow");
 
                         auto start{stack.size() - op_sp->arity};
-                        auto result(op_sp->function(&stack[start]));
+                        auto result(op_sp->function(&stack[start]
+#ifdef CXX_EVAL_ID
+                                                    ,op_idx
+#endif
+                                                    ));
 
                         stack.resize(start);
 
@@ -393,6 +401,7 @@ namespace cxx_eval
                     {
                         expr.structure.push_back('f');
                         expr.operations.push_back(op_stack.back());
+                        
                         op_stack.pop_back();
                     }
                     if (op_stack.empty())
@@ -565,7 +574,6 @@ namespace cxx_eval
                         throw std::runtime_error("Mismatched parentheses");
                     expr.structure.push_back('f');
                     expr.operations.push_back(op_stack.back());
-                    
                     op_stack.pop_back();
                 }
             }
@@ -819,7 +827,11 @@ namespace cxx_eval
 
                 table->add_seq(name, op);
             }
-
+#ifdef CXX_EVAL_ID
+    #define ARG_DEFINITION(name) std::shared_ptr<RootVar> *name,std::size_t
+#else
+    #define ARG_DEFINITION(name) std::shared_ptr<RootVar> *name
+#endif
             // 自定义函数
             template <bool is_shared = false>
             static auto register_function(Evaluator &evaluator, const StringType &name,
@@ -854,9 +866,9 @@ namespace cxx_eval
                 for (const auto &pair : saved)
                     vars->add_seq(pair.first, pair.second);
 
-                auto func = [expr, vargs](std::shared_ptr<RootVar> *params) mutable -> std::shared_ptr<RootVar>
+                auto func = [expr, vargs](ARG_DEFINITION(params)) mutable -> std::shared_ptr<RootVar>
                 {
-                    for (size_t i(0); i < vargs->size(); ++i)
+                    for (std::size_t i(0); i < vargs->size(); ++i)
                         (*vargs)[i]->data = params[i]->data;
 
                     ConstVar result;
@@ -880,7 +892,7 @@ namespace cxx_eval
             static auto setup_arithmetic(Evaluator &evaluator) -> void
             {
                 // 加法
-                auto add{[](std::shared_ptr<RootVar> *args)
+                auto add{[](ARG_DEFINITION(args))
                          {
                              ConstVar result;
                              result.data = args[0]->data + args[1]->data;
@@ -889,7 +901,7 @@ namespace cxx_eval
                 register_infix(evaluator, detail::StringLiteral<CharType>::get("+", L"+"), add, 1);
 
                 // 减法
-                auto sub{[](std::shared_ptr<RootVar> *args)
+                auto sub{[](ARG_DEFINITION(args))
                          {
                              ConstVar result;
                              result.data = args[0]->data - args[1]->data;
@@ -898,7 +910,7 @@ namespace cxx_eval
                 register_infix(evaluator, detail::StringLiteral<CharType>::get("-", L"-"), sub, 1);
 
                 // 乘法
-                auto mul{[](std::shared_ptr<RootVar> *args)
+                auto mul{[](ARG_DEFINITION(args))
                          {
                              ConstVar result;
                              result.data = args[0]->data * args[1]->data;
@@ -907,7 +919,7 @@ namespace cxx_eval
                 register_infix(evaluator, detail::StringLiteral<CharType>::get("*", L"*"), mul, 2);
 
                 // 除法
-                auto div{[](std::shared_ptr<RootVar> *args)
+                auto div{[](ARG_DEFINITION(args))
                          {
                              ConstVar result;
                              result.data = args[0]->data / args[1]->data;
@@ -916,7 +928,7 @@ namespace cxx_eval
                 register_infix(evaluator, detail::StringLiteral<CharType>::get("/", L"/"), div, 2);
 
                 // 幂运算
-                auto pow{[](std::shared_ptr<RootVar> *args)
+                auto pow{[](ARG_DEFINITION(args))
                          {
                              ConstVar result;
                              result.data = std::pow(args[0]->data, args[1]->data);
@@ -925,7 +937,7 @@ namespace cxx_eval
                 register_infix(evaluator, detail::StringLiteral<CharType>::get("^", L"^"), pow, 3);
 
                 // 取模
-                auto mod{[](std::shared_ptr<RootVar> *args)
+                auto mod{[](ARG_DEFINITION(args))
                          {
                              ConstVar result;
                              result.data = std::fmod(args[0]->data, args[1]->data);
@@ -934,7 +946,7 @@ namespace cxx_eval
                 register_infix(evaluator, detail::StringLiteral<CharType>::get("%", L"%"), mod, 2);
 
                 // 负号
-                auto neg{[](std::shared_ptr<RootVar> *args)
+                auto neg{[](ARG_DEFINITION(args))
                          {
                              ConstVar result;
                              result.data = -args[0]->data;
@@ -943,7 +955,7 @@ namespace cxx_eval
                 register_prefix(evaluator, detail::StringLiteral<CharType>::get("-", L"-"), neg, 2);
 
                 // 正号
-                auto pos{[](std::shared_ptr<RootVar> *args)
+                auto pos{[](ARG_DEFINITION(args))
                          {
                              ConstVar result;
                              result.data = +args[0]->data;
@@ -957,7 +969,7 @@ namespace cxx_eval
             {
                 register_function(
                     evaluator, detail::StringLiteral<CharType>::get("sin", L"sin"),
-                    [](std::shared_ptr<RootVar> *args)
+                    [](ARG_DEFINITION(args))
                     {
                         ConstVar result;
                         result.data = std::sin(args[0]->data);
@@ -966,7 +978,7 @@ namespace cxx_eval
                     1);
                 register_function(
                     evaluator, detail::StringLiteral<CharType>::get("cos", L"cos"),
-                    [](std::shared_ptr<RootVar> *args)
+                    [](ARG_DEFINITION(args))
                     {
                         ConstVar result;
                         result.data = std::cos(args[0]->data);
@@ -975,7 +987,7 @@ namespace cxx_eval
                     1);
                 register_function(
                     evaluator, detail::StringLiteral<CharType>::get("tan", L"tan"),
-                    [](std::shared_ptr<RootVar> *args)
+                    [](ARG_DEFINITION(args))
                     {
                         ConstVar result;
                         result.data = std::tan(args[0]->data);
@@ -984,7 +996,7 @@ namespace cxx_eval
                     1);
                 register_function(
                     evaluator, detail::StringLiteral<CharType>::get("asin", L"asin"),
-                    [](std::shared_ptr<RootVar> *args)
+                    [](ARG_DEFINITION(args))
                     {
                         ConstVar result;
                         result.data = std::asin(args[0]->data);
@@ -993,7 +1005,7 @@ namespace cxx_eval
                     1);
                 register_function(
                     evaluator, detail::StringLiteral<CharType>::get("acos", L"acos"),
-                    [](std::shared_ptr<RootVar> *args)
+                    [](ARG_DEFINITION(args))
                     {
                         ConstVar result;
                         result.data = std::acos(args[0]->data);
@@ -1002,7 +1014,7 @@ namespace cxx_eval
                     1);
                 register_function(
                     evaluator, detail::StringLiteral<CharType>::get("atan", L"atan"),
-                    [](std::shared_ptr<RootVar> *args)
+                    [](ARG_DEFINITION(args))
                     {
                         ConstVar result;
                         result.data = std::atan(args[0]->data);
@@ -1011,7 +1023,7 @@ namespace cxx_eval
                     1);
                 register_function(
                     evaluator, detail::StringLiteral<CharType>::get("atan2", L"atan2"),
-                    [](std::shared_ptr<RootVar> *args)
+                    [](ARG_DEFINITION(args))
                     {
                         ConstVar result;
                         result.data = std::atan2(args[0]->data, args[1]->data);
@@ -1025,7 +1037,7 @@ namespace cxx_eval
             {
                 register_function(
                     evaluator, detail::StringLiteral<CharType>::get("sinh", L"sinh"),
-                    [](std::shared_ptr<RootVar> *args)
+                    [](ARG_DEFINITION(args))
                     {
                         ConstVar result;
                         result.data = std::sinh(args[0]->data);
@@ -1034,7 +1046,7 @@ namespace cxx_eval
                     1);
                 register_function(
                     evaluator, detail::StringLiteral<CharType>::get("cosh", L"cosh"),
-                    [](std::shared_ptr<RootVar> *args)
+                    [](ARG_DEFINITION(args))
                     {
                         ConstVar result;
                         result.data = std::cosh(args[0]->data);
@@ -1043,7 +1055,7 @@ namespace cxx_eval
                     1);
                 register_function(
                     evaluator, detail::StringLiteral<CharType>::get("tanh", L"tanh"),
-                    [](std::shared_ptr<RootVar> *args)
+                    [](ARG_DEFINITION(args))
                     {
                         ConstVar result;
                         result.data = std::tanh(args[0]->data);
@@ -1052,7 +1064,7 @@ namespace cxx_eval
                     1);
                 register_function(
                     evaluator, detail::StringLiteral<CharType>::get("asinh", L"asinh"),
-                    [](std::shared_ptr<RootVar> *args)
+                    [](ARG_DEFINITION(args))
                     {
                         ConstVar result;
                         result.data = std::asinh(args[0]->data);
@@ -1061,7 +1073,7 @@ namespace cxx_eval
                     1);
                 register_function(
                     evaluator, detail::StringLiteral<CharType>::get("acosh", L"acosh"),
-                    [](std::shared_ptr<RootVar> *args)
+                    [](ARG_DEFINITION(args))
                     {
                         ConstVar result;
                         result.data = std::acosh(args[0]->data);
@@ -1070,7 +1082,7 @@ namespace cxx_eval
                     1);
                 register_function(
                     evaluator, detail::StringLiteral<CharType>::get("atanh", L"atanh"),
-                    [](std::shared_ptr<RootVar> *args)
+                    [](ARG_DEFINITION(args))
                     {
                         ConstVar result;
                         result.data = std::atanh(args[0]->data);
@@ -1084,7 +1096,7 @@ namespace cxx_eval
             {
                 register_function(
                     evaluator, detail::StringLiteral<CharType>::get("exp", L"exp"),
-                    [](std::shared_ptr<RootVar> *args)
+                    [](ARG_DEFINITION(args))
                     {
                         ConstVar result;
                         result.data = std::exp(args[0]->data);
@@ -1093,7 +1105,7 @@ namespace cxx_eval
                     1);
                 register_function(
                     evaluator, detail::StringLiteral<CharType>::get("exp2", L"exp2"),
-                    [](std::shared_ptr<RootVar> *args)
+                    [](ARG_DEFINITION(args))
                     {
                         ConstVar result;
                         result.data = std::exp2(args[0]->data);
@@ -1103,7 +1115,7 @@ namespace cxx_eval
 
                 register_function(
                     evaluator, detail::StringLiteral<CharType>::get("ln", L"ln"),
-                    [](std::shared_ptr<RootVar> *args)
+                    [](ARG_DEFINITION(args))
                     {
                         ConstVar result;
                         result.data = std::log(args[0]->data);
@@ -1113,7 +1125,7 @@ namespace cxx_eval
 
                 register_function(
                     evaluator, detail::StringLiteral<CharType>::get("log", L"log"),
-                    [](std::shared_ptr<RootVar> *args)
+                    [](ARG_DEFINITION(args))
                     {
                         ConstVar result;
                         result.data = std::log(args[1]->data) / std::log(args[0]->data);
@@ -1123,7 +1135,7 @@ namespace cxx_eval
 
                 register_function(
                     evaluator, detail::StringLiteral<CharType>::get("log10", L"log10"),
-                    [](std::shared_ptr<RootVar> *args)
+                    [](ARG_DEFINITION(args))
                     {
                         ConstVar result;
                         result.data = std::log10(args[0]->data);
@@ -1132,7 +1144,7 @@ namespace cxx_eval
                     1);
                 register_function(
                     evaluator, detail::StringLiteral<CharType>::get("log2", L"log2"),
-                    [](std::shared_ptr<RootVar> *args)
+                    [](ARG_DEFINITION(args))
                     {
                         ConstVar result;
                         result.data = std::log2(args[0]->data);
@@ -1141,7 +1153,7 @@ namespace cxx_eval
                     1);
                 register_function(
                     evaluator, detail::StringLiteral<CharType>::get("log1p", L"log1p"),
-                    [](std::shared_ptr<RootVar> *args)
+                    [](ARG_DEFINITION(args))
                     {
                         ConstVar result;
                         result.data = std::log1p(args[0]->data);
@@ -1155,7 +1167,7 @@ namespace cxx_eval
             {
                 register_function(
                     evaluator, detail::StringLiteral<CharType>::get("sqrt", L"sqrt"),
-                    [](std::shared_ptr<RootVar> *args)
+                    [](ARG_DEFINITION(args))
                     {
                         ConstVar result;
                         result.data = std::sqrt(args[0]->data);
@@ -1164,7 +1176,7 @@ namespace cxx_eval
                     1);
                 register_function(
                     evaluator, detail::StringLiteral<CharType>::get("cbrt", L"cbrt"),
-                    [](std::shared_ptr<RootVar> *args)
+                    [](ARG_DEFINITION(args))
                     {
                         ConstVar result;
                         result.data = std::cbrt(args[0]->data);
@@ -1173,7 +1185,7 @@ namespace cxx_eval
                     1);
                 register_function(
                     evaluator, detail::StringLiteral<CharType>::get("hypot", L"hypot"),
-                    [](std::shared_ptr<RootVar> *args)
+                    [](ARG_DEFINITION(args))
                     {
                         ConstVar result;
                         result.data = std::hypot(args[0]->data, args[1]->data);
@@ -1187,7 +1199,7 @@ namespace cxx_eval
             {
                 register_function(
                     evaluator, detail::StringLiteral<CharType>::get("ceil", L"ceil"),
-                    [](std::shared_ptr<RootVar> *args)
+                    [](ARG_DEFINITION(args))
                     {
                         ConstVar result;
                         result.data = std::ceil(args[0]->data);
@@ -1196,7 +1208,7 @@ namespace cxx_eval
                     1);
                 register_function(
                     evaluator, detail::StringLiteral<CharType>::get("floor", L"floor"),
-                    [](std::shared_ptr<RootVar> *args)
+                    [](ARG_DEFINITION(args))
                     {
                         ConstVar result;
                         result.data = std::floor(args[0]->data);
@@ -1205,7 +1217,7 @@ namespace cxx_eval
                     1);
                 register_function(
                     evaluator, detail::StringLiteral<CharType>::get("round", L"round"),
-                    [](std::shared_ptr<RootVar> *args)
+                    [](ARG_DEFINITION(args))
                     {
                         ConstVar result;
                         result.data = std::round(args[0]->data);
@@ -1214,7 +1226,7 @@ namespace cxx_eval
                     1);
                 register_function(
                     evaluator, detail::StringLiteral<CharType>::get("trunc", L"trunc"),
-                    [](std::shared_ptr<RootVar> *args)
+                    [](ARG_DEFINITION(args))
                     {
                         ConstVar result;
                         result.data = std::trunc(args[0]->data);
@@ -1228,7 +1240,7 @@ namespace cxx_eval
             {
                 register_function(
                     evaluator, detail::StringLiteral<CharType>::get("abs", L"abs"),
-                    [](std::shared_ptr<RootVar> *args)
+                    [](ARG_DEFINITION(args))
                     {
                         ConstVar result;
                         Type x = args[0]->data;
@@ -1238,7 +1250,7 @@ namespace cxx_eval
                     1);
                 register_function(
                     evaluator, detail::StringLiteral<CharType>::get("erf", L"erf"),
-                    [](std::shared_ptr<RootVar> *args)
+                    [](ARG_DEFINITION(args))
                     {
                         ConstVar result;
                         result.data = std::erf(args[0]->data);
@@ -1247,7 +1259,7 @@ namespace cxx_eval
                     1);
                 register_function(
                     evaluator, detail::StringLiteral<CharType>::get("erfc", L"erfc"),
-                    [](std::shared_ptr<RootVar> *args)
+                    [](ARG_DEFINITION(args))
                     {
                         ConstVar result;
                         result.data = std::erfc(args[0]->data);
@@ -1256,7 +1268,7 @@ namespace cxx_eval
                     1);
                 register_function(
                     evaluator, detail::StringLiteral<CharType>::get("tgamma", L"tgamma"),
-                    [](std::shared_ptr<RootVar> *args)
+                    [](ARG_DEFINITION(args))
                     {
                         ConstVar result;
                         result.data = std::tgamma(args[0]->data);
@@ -1265,7 +1277,7 @@ namespace cxx_eval
                     1);
                 register_function(
                     evaluator, detail::StringLiteral<CharType>::get("lgamma", L"lgamma"),
-                    [](std::shared_ptr<RootVar> *args)
+                    [](ARG_DEFINITION(args))
                     {
                         ConstVar result;
                         result.data = std::lgamma(args[0]->data);
@@ -1309,7 +1321,7 @@ namespace cxx_eval
             // 一键注册赋值运算符 =
             static auto setup_assignment(Evaluator &evaluator) -> void
             {
-                auto assign{[](std::shared_ptr<RootVar> *args) -> std::shared_ptr<RootVar>
+                auto assign{[](ARG_DEFINITION(args)) -> std::shared_ptr<RootVar>
                             {
                                 if (args[0]->get_type() != var_type::mutable_var)
                                     throw std::runtime_error("Cannot assign to const variable");
@@ -1318,6 +1330,7 @@ namespace cxx_eval
                             }};
                 register_infix(evaluator, detail::StringLiteral<CharType>::get("=", L"="), assign, 0);
             }
+#undef ARG_DEFINITION
         };
     };
 
