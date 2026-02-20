@@ -135,7 +135,7 @@ namespace cxx_eval
 
         struct OperInfix:Operation
         {
-            bool left_associative{false};  // true: 左结合, false: 右结合
+            bool left_associative;  // true: 左结合, false: 右结合
         };
 
         struct OperPrefix:Operation
@@ -796,7 +796,7 @@ namespace cxx_eval
 
             // 注册中缀运算符（带优先级）
             static auto register_infix(Evaluator &evaluator, const StringType &name, FuncType func,
-                                       std::size_t precedence) -> void
+                                       std::size_t precedence,bool left_associative = true) -> void
             {
                 auto &table = evaluator.get_infixs();
                 if (!table)
@@ -806,6 +806,7 @@ namespace cxx_eval
                 op.name = name;
                 op.arity = 2;
                 op.precedence = precedence;
+                op.left_associative = left_associative;
                 op.function = func;
 
                 table->add_seq(name, op);
@@ -934,7 +935,7 @@ namespace cxx_eval
                              result.data = std::pow(args[0]->data, args[1]->data);
                              return std::make_shared<ConstVar>(result);
                          }};
-                register_infix(evaluator, detail::StringLiteral<CharType>::get("^", L"^"), pow, 3);
+                register_infix(evaluator, detail::StringLiteral<CharType>::get("^", L"^"), pow, 3,false);
 
                 // 取模
                 auto mod{[](ARG_DEFINITION(args))
@@ -1328,7 +1329,7 @@ namespace cxx_eval
                                 args[0]->data = args[1]->data;
                                 return args[0];
                             }};
-                register_infix(evaluator, detail::StringLiteral<CharType>::get("=", L"="), assign, 0);
+                register_infix(evaluator, detail::StringLiteral<CharType>::get("=", L"="), assign, 0,false);
             }
 #undef ARG_DEFINITION
         };
