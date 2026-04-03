@@ -1,188 +1,213 @@
-** [🇨🇳 中文文档](README.zh.md) ** 
- # C++ Mathematical Expression Evaluator 
- > A powerful, header-only C++ library for parsing and evaluating mathematical expressions 
- [![C++11](https://img.shields.io/badge/C++-11-blue.svg)](https://en.cppreference.com/w/cpp/11) [![Header-Only](https://img.shields.io/badge/header--only-yes-brightgreen.svg)]() 
- ## ✨ Features 
- • **Header-only** – Zero compilation overhead, easy integration<br>• **Type Flexible** – Works with any numeric type (double, float, int, etc.)<br>• **Character Support** – Full support for narrow (`char`) and wide (`wchar_t`) strings<br>• **Variable Management** – Register variables with const/mutable semantics<br>• **Operator Control** – Define custom operators with precedence and associativity<br>• **Function Library** – Extensive built-in mathematical functions<br>• **Expression Parsing** – Three parsing modes: Immediate, Persistent, Normal<br>• **Constant Folding** – Automatically optimizes constant subexpressions<br>• **Custom Functions** – Define new functions using expression strings<br>• **Smart Memory** – RAII-compliant with shared_ptr/weak_ptr support 
- ## 🔧 Requirements 
- • C++11 or later<br>• Standard Template Library (STL)<br>• No external dependencies 
- ## 📥 Installation 
- 1. Download `eval.hpp` and `table.hpp`<br>
- 2. Place them in your project's include directory<br>
- 3. Include `eval.hpp` in your source files<br>
- 4. Compile with C++11 support enabled 
- ```cpp 
- #include "eval.hpp" 
- ``` 
- ## 🚀 Quick Start 
- ### Basic Arithmetic 
- ```cpp 
- #include "eval.hpp" 
- #include <iostream> 
- int main() 
- { 
-     using Evaluator = cxx_eval::basic_eval<char, double>::Evaluator; 
-     using Simple = cxx_eval::basic_eval<char, double>::simple; 
-     Evaluator eval; 
-     Simple::setup_allmath(eval); 
-     Simple::register_vars(eval, "x", 10.0); 
-     auto expr = eval.parse<false>("2 * x + 3.14"); 
-     double result = expr.evaluate(); 
-     std::cout << "Result: " << result << std::endl; // 23.14 
-     return 0; 
- } 
- ``` 
- ### With Variables 
- ```cpp 
- Simple::register_vars(eval, "a", 5.0, "b", 3.0, "c", 2.0); 
- auto expr = eval.parse<false>("a * b + c"); 
- std::cout << expr.evaluate() << std::endl; // 17.0 
- auto var_node = eval.get_variables()->find_seq("a"); 
- var_node->get_data()->data = 10.0; 
- std::cout << expr.evaluate() << std::endl; // 32.0 
- ``` 
- ## 📚 Documentation 
- See below for full documentation, API reference, and advanced examples. 
- ## 🧠 Core Concepts 
- ### Expression Structure 
- The library uses a postfix (RPN) representation internally:<br>• `c` – Constant value<br>• `v` – Variable reference<br>• `f` – Function/operator application 
- ### Parsing Modes 
- • **Immediate** – All values become constants (optimization)<br>• **Persistent** – All values remain variables (uses weak_ptr)<br>• **Normal** – Respects const/mutable declarations 
- ### Operator Precedence 
- Higher precedence numbers bind tighter. Default precedences:<br>• Assignment (`=`) – 0<br>• Addition/Subtraction (`+`, `-`) – 1<br>• Multiplication/Division (`*`, `/`, `%`) – 2<br>• Exponentiation (`^`) – 3<br>• Unary operators – 2<br>• Functions – `size_max` (highest) 
- ## 📖 API Reference 
- ### Evaluator Class 
- #### Construction & Setup 
- ```cpp 
- cxx_eval::basic_eval<char, double>::Evaluator eval; 
-  eval.set_skip([](char c) { return c == ' '; }); 
- eval.enable_whitespace_skip(true); 
- eval.set_left_delimiter('('); 
- eval.set_right_delimiter(')'); 
- eval.set_cut_delimiter(','); 
- evaluator.enable_brackets(true);
- evaluator.enable_cut(true);
- ``` 
- #### Variable Management 
- ```cpp 
- Simple::register_vars(eval, "var1", 1.0, "var2", 2.0); 
- Simple::register_consts(eval, "PI", 3.14159); 
- auto vars = eval.get_variables(); 
- auto node = vars->find_seq("var1"); 
- if (node && node->has_data()) 
- { 
-     double value = node->get_data()->data; 
- } 
- ``` 
- #### Operator Registration 
- ```cpp 
- Simple::register_infix(eval, "**", [](std::shared_ptr<RootVar>* args) 
- { 
-     ConstVar result; 
-     result.data = std::pow(args[0]->data, args[1]->data); 
-     return std::make_shared<ConstVar>(result); 
- }, 3); 
- Simple::register_prefix(eval, "
-", [](std::shared_ptr<RootVar>* args) 
- { 
-     ConstVar result; 
-     result.data = -args[0]->data; 
-     return std::make_shared<ConstVar>(result); 
- }, 2); 
- Simple::register_function(eval, "max", [](std::shared_ptr<RootVar>* args) 
- { 
-     ConstVar result; 
-     result.data = std::max(args[0]->data, args[1]->data); 
-     return std::make_shared<ConstVar>(result); 
- }, 2); 
- ``` 
- #### Custom Functions from Expressions 
- ```cpp 
- Simple::register_function<false>(eval, "f", std::vector<std::string>{"x", "y"}, "x^2 + y^2"); 
- auto expr = eval.parse<false>("f(3,4)"); 
- std::cout << expr.evaluate() << std::endl; // 25.0 
- ``` 
- ### Expression Template 
- ```cpp 
- auto expr = eval.parse<false>("2 + 2"); 
- double result = expr.evaluate(); 
- auto persistent = eval.parse<true>("x + y"); 
- ``` 
- ## 🎯 Advanced Examples 
- ### Custom Mathematical Constants 
- ```cpp 
- Simple::register_consts(eval, "e", 2.718281828459045); 
- Simple::register_consts(eval, "phi", 1.618033988749895); 
- ``` 
- ### Complex Function Definition 
- ```cpp 
- Simple::register_function<false>(eval, "quadratic", std::vector<std::string>{"a", "b", "c"}, "(-b + sqrt(b^2 - 4*a*c)) / (2*a)"); 
- auto expr = eval.parse<false>("quadratic(1, -5, 6)"); 
- std::cout << expr.evaluate() << std::endl; // 3.0 
- ``` 
- ### Assignment Operator 
- ```cpp 
- Simple::setup_assignment(eval); 
- auto expr = eval.parse<false>("x = 42"); 
- expr.evaluate(); 
- auto check = eval.parse<false>("x"); 
- std::cout << check.evaluate() << std::endl; // 42 
- ``` 
- ### Wide Character Support 
- ```cpp 
- using WEvaluator = cxx_eval::basic_eval<wchar_t, double>::Evaluator; 
- using WSimple = cxx_eval::basic_eval<wchar_t, double>::simple; 
- WEvaluator weval; 
- WSimple::setup_allmath(weval); 
- WSimple::register_vars(weval, L"变量", 3.14); 
- auto wexpr = weval.parse<false>(L"变量 * 2"); 
- std::wcout << wexpr.evaluate() << std::endl; 
- ``` 
- ### Custom Skip Behavior 
- ```cpp 
- eval.set_skip([](char c) 
- { 
-     return !std::isalnum(c) && c != '+' && c != '-' && c != '*' && c != '/' && c != '^' && c != '(' && c != ')'; 
- }); 
- eval.enable_whitespace_skip(true); 
- ``` 
- ## 🔨 Customization 
- ### Implementing Custom Numeric Types 
- ```cpp 
- struct Complex 
- { 
-     double real, imag; 
-     Complex operator+(const Complex& other) const 
-     { 
-         return {real + other.real, imag + other.imag}; 
-     } 
- }; 
- using ComplexEval = cxx_eval::basic_eval<char, Complex>::Evaluator; 
- using ComplexSimple = cxx_eval::basic_eval<char, Complex>::simple; 
- ``` 
- ### Custom Constant Parser 
- ```cpp 
- eval.set_constant_parser([](const std::string& str, std::size_t& pos, std::string& structure, std::vector<cxx_eval::basic_eval<char, double>::ConstVar>& constants) -> bool 
- { 
-     if (str.substr(pos, 2) == "0x") 
-     { 
-         // Parse hexadecimal logic 
-         return true; 
-     } 
-     return false; 
- }); 
- ``` 
- ## ⚠️ Error Handling 
- The library throws `std::runtime_error` for:<br>• Syntax errors<br>• Undefined variables<br>• Mismatched parentheses<br>• Stack underflow/overflow<br>• Expired weak_ptr access 
- ```cpp 
- try 
- { 
-     auto result = expr.evaluate(); 
- } 
- catch (const std::runtime_error& e) 
- { 
-     std::cerr << "Evaluation error: " << e.what() << std::endl; 
- } 
- ``` 
- ## 🤝 Contributing 
- Contributions welcome! Submit pull requests or open issues for bugs and feature requests.
+** [🇨🇳 中文文档](README.zh.md) **
+
+# C++ Mathematical Expression Evaluator
+
+> A powerful, header-only C++ library for parsing and evaluating mathematical expressions
+
+[![C++11](https://img.shields.io/badge/C++-11-blue.svg)](https://en.cppreference.com/w/cpp/11)
+[![Header-Only](https://img.shields.io/badge/header--only-yes-brightgreen.svg)]()
+
+## ✨ Features
+
+- **Header-only** – Zero compilation overhead, easy integration
+- **Type Flexible** – Works with any numeric type (double, float, int, etc.)
+- **Character Support** – Full support for narrow (`char`) and wide (`wchar_t`) strings
+- **Variable Management** – Add, get, set, find variables with ease
+- **Operator Control** – Define custom operators with precedence and associativity
+- **Function Library** – 30+ built-in mathematical functions
+- **Custom Functions** – Create functions with variable number of arguments
+- **Smart Memory** – RAII-compliant with shared_ptr support
+
+## 🔧 Requirements
+
+- C++11 or later
+- Standard Template Library (STL)
+- No external dependencies
+
+## 📥 Installation
+
+1. Download `eval.hpp`, `eval_core.hpp` and `options.hpp`
+2. Place them in your project's include directory
+3. Include `eval.hpp` in your source files
+4. Compile with C++11 support enabled
+
+```cpp
+#include "eval.hpp"
+```
+
+## 🚀 Quick Start
+
+### Basic Arithmetic
+
+```cpp
+#include "eval.hpp"
+#include <iostream>
+
+using namespace ydog01::eval;
+
+int main()
+{
+    Evaluator<char, double> eval(Options::All);
+    double result = eval("2 * 3 + 1");
+    std::cout << "Result: " << result << std::endl;
+    return 0;
+}
+```
+
+### With Variables
+
+```cpp
+Evaluator<char, double> eval(Options::All);
+eval.add_variable("x", 10.0);
+eval.add_variable("y", 20.0);
+double result = eval("x + y");
+std::cout << result << std::endl;
+
+eval.set_variable("x", 100.0);
+result = eval("x + y");
+std::cout << result << std::endl;
+```
+
+### Custom Function
+
+```cpp
+Evaluator<char, double> eval(Options::All);
+
+eval.add_function("max", [](core::ParamViewer<double> a) {
+    double m = a[0];
+    for (size_t i = 1; i < a.size(); ++i)
+        if (a[i] > m) m = a[i];
+    return m;
+});
+
+double result = eval("max(10, 20, 30, 5)");
+std::cout << result << std::endl;
+```
+
+### Custom Operator
+
+```cpp
+Evaluator<char, double> eval;
+eval.enable_whitespace_skip();
+eval.enable_constant_parser();
+eval.enable_function_call();
+
+eval.add_prefix("!", [](core::ParamViewer<double> a) {
+    int n = static_cast<int>(a[0]);
+    double r = 1;
+    for (int i = 2; i <= n; ++i) r *= i;
+    return r;
+}, 40);
+
+double result = eval("!5");
+std::cout << result << std::endl;
+```
+
+## 📖 API Reference
+
+### Configuration
+
+| Method | Description |
+|--------|-------------|
+| `enable_whitespace_skip(bool)` | Skip whitespace characters |
+| `enable_constant_parser(bool)` | Parse numeric constants |
+| `enable_function_call(bool)` | Enable parentheses and comma |
+
+### Variable Operations
+
+| Method | Description |
+|--------|-------------|
+| `add_variable(name, value)` | Add a variable |
+| `add_variable(name, ptr)` | Add a variable from pointer |
+| `get_variable(name)` | Get variable reference |
+| `set_variable(name, value)` | Modify variable |
+| `find_variable(name)` | Find variable, returns pointer |
+
+### Operator Registration
+
+| Method | Description |
+|--------|-------------|
+| `add_prefix(name, func, prec, assoc)` | Register prefix operator |
+| `add_infix(name, func, prec, assoc)` | Register infix operator |
+| `add_suffix(name, func, prec, assoc)` | Register suffix operator |
+| `add_function(name, func, assoc)` | Register function |
+
+### Removal
+
+| Method | Description |
+|--------|-------------|
+| `remove_variable(name)` | Remove variable |
+| `remove_prefix(name)` | Remove prefix operator |
+| `remove_infix(name)` | Remove infix operator |
+| `remove_suffix(name)` | Remove suffix operator |
+
+### Evaluation
+
+| Method | Description |
+|--------|-------------|
+| `parse(expr)` | Parse expression, return Expression object |
+| `evaluate(expr)` | Parse and evaluate |
+| `operator()(expr)` | Same as evaluate |
+
+### Built-in Functions
+
+| Category | Functions |
+|----------|-----------|
+| Basic Ops | `+ - * / % ^` |
+| Constants | `pi e` |
+| Trig | `sin cos tan asin acos atan atan2` |
+| Hyperbolic | `sinh cosh tanh asinh acosh atanh` |
+| Exp/Log | `exp exp2 ln log log10 log2 log1p` |
+| Power/Root | `sqrt cbrt hypot` |
+| Rounding | `ceil floor round trunc abs` |
+| Special | `erf erfc tgamma lgamma` |
+
+### Options
+
+| Option | Value | Description |
+|--------|-------|-------------|
+| `None` | 0 | No features |
+| `WhitespaceSkip` | 1 | Skip whitespace |
+| `ConstantParser` | 2 | Parse numbers |
+| `Parentheses` | 4 | Support parentheses |
+| `Comma` | 8 | Support comma |
+| `BuiltinOps` | 16 | Built-in operators |
+| `BuiltinConstants` | 32 | Built-in constants |
+| `BuiltinFuncs` | 64 | Built-in functions |
+| `All` | 127 | Enable all features |
+
+## 🎯 Advanced Examples
+
+### Nested Function Calls
+
+```cpp
+Evaluator<char, double> eval(Options::All);
+eval.add_function("max", [](auto a) {
+    double m = a[0];
+    for (size_t i = 1; i < a.size(); ++i)
+        if (a[i] > m) m = a[i];
+    return m;
+});
+double result = eval("max(sin(pi/2), cos(0), tan(pi/4))");
+```
+
+### Complex Expressions
+
+```cpp
+double result = eval("(2+3)*4 - 5/2 + sin(pi/2)");
+double result2 = eval("sqrt( (2^3 + 4^2) / 2 )");
+```
+
+## ⚠️ Error Handling
+
+```cpp
+try {
+    double result = eval("invalid expression");
+} catch (const std::runtime_error& e) {
+    std::cerr << "Error: " << e.what() << std::endl;
+}
+```
+
+## 🤝 Contributing
+
+Contributions welcome! Submit pull requests or open issues for bugs and feature requests.
