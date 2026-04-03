@@ -659,7 +659,7 @@ namespace ydog01
             typename std::enable_if<!is_weak_ptr<U>::value, DataType>::type
         {
             std::list<std::unique_ptr<DataType>> cache;
-            std:std::vector<DataType*> stack;
+            std::vector<DataType*> stack;
             auto operator_ptr = operators.begin();
             auto variable_ptr = variables.begin();
             auto constant_ptr = constants.begin();
